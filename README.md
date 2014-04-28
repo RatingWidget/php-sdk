@@ -14,7 +14,8 @@ To get your site's ID, Public Key & Secret Key, simply sign-in at http://app.rat
     define('RW_SDK__SITE_ID',         '__YOUR_SITE_ID__');
     define('RW_SDK__SITE_PUBLIC_KEY', '__YOUR_SITE_PUBLIC_KEY__');
     define('RW_SDK__SITE_SECRET_KEY', '__YOUR_SITE_SECRET_KEY__');
-
+    
+    // Init API.
     $rw_api = new \RatingWidget\Api\Sdk\RatingWidget(
         RW_SDK__API_SCOPE,
         RW_SDK__SITE_ID,
@@ -38,6 +39,8 @@ Clear specified rating's votes:
 ## Rich-Snippets Data Fetching
 
 Google crwaling frequency is not requiring a real-time micro data updates. Thus, we've wrapped the Rich-Snippets endpoint with special SDK methods that using local disk caching to prevent unnecessary API calls.
+
+IMPORTANT: Thus, make sure the PHP script running the SDK has WRITE permissions to the parent directory of the SDK files.
 
 To get specified ratings data use:
 
