@@ -27,6 +27,11 @@
     );
     
     $item_id = 'UNIQUE_POSITIVER_INTEGER'; // Replace that with your rating id.
+    
+    // If you want the rating to work with Rich-Snippets,
+    // set the rating class to one of the following values:
+    //     product, page, blog-post, post, front-post, item
+    $rating_class = 'product';  
 ?>
     <!-- Must contain all schema.org elements -->
     <div class="container" itemscope itemtype="http://schema.org/Product">
@@ -35,7 +40,7 @@
         <p>
             Description / Content.
         </p>
-        <div class="rw-ui-container rw-urid-<?php echo $item_id;?>"></div>
+        <div class="rw-ui-container rw-class-<?php echo $rating_class ?> rw-urid-<?php echo $item_id ?>"></div>
         <?php 
         $rw_api->EchoAggregateRating($item_id) ?>
     </div>
