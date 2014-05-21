@@ -60,20 +60,37 @@
         protected function CanonizePath($pPath)
         {
             $pPath = trim($pPath, '/');
+            $query_pos = strpos($pPath, '?');
+            $query = '';
+            
+            if (false !== $query_pos)
+            {
+                $query = substr($pPath, $query_pos);
+                $pPath = substr($pPath, 0, $query_pos);
+            }
+
+            // Trim '.json' suffix.
+            $format_length = strlen('.' . self::FORMAT);
+            $start  = $format_length * (-1); //negative
+            if (substr($pPath, $start) === ('.' . self::FORMAT))
+                $pPath = substr($pPath, 0, strlen($pPath) - $format_length);
             
             switch ($this->_scope)
             {
                 case 'app':
+                    $base = '/apps/' . $this->_id;
                     break;
                 case 'user':
-                    $pPath = '/users/' . $this->_id . (!empty($pPath) ? '/' . $pPath : '.' . self::FORMAT);
+                    $base = '/users/' . $this->_id;
                     break;
                 case 'site':
-                    $pPath = '/sites/' . $this->_id . (!empty($pPath) ? '/' . $pPath : '.' . self::FORMAT);
+                    $base = '/sites/' . $this->_id;
                     break;
+                default:
+                    throw new \RatingWidget\Api\Sdk\Exceptions\Exception('Scope not implemented.');
             }
             
-            return '/v' . RW_API__VERSION . $pPath;
+            return '/v' . RW_API__VERSION . $base . (!empty($pPath) ? '/' : '') . $pPath . '.' . self::FORMAT . $query;
         }
         
         protected function GetUrl($pCanonizedPath)
