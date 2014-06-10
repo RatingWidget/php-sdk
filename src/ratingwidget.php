@@ -60,16 +60,18 @@
                     $pMethod,
                     $pParams
                 );
-                
-                /*RequestManager::Instance()->HandleRequest(
-                    $this->CanonizePath($pPath), 
-                    $pMethod, 
-                    array_merge(array('scope' => $this->_scope), $pParams));*/
             }
             catch (\Exception $e)
             {
-                // Map to SDK exception.
-                $this->ThrowException($e);
+                // Map to error object.
+                $result = json_encode(array(
+                    'error' => array(
+                        'type' => 'Unknown',
+                        'message' => $e->getMessage() . ' (' . $e->getFile() . ': ' . $e->getLine() . ')',
+                        'code' => 'unknown',
+                        'http' => 402
+                    )
+                ));
             }
             
             return json_decode($result);
