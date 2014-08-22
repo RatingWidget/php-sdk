@@ -233,9 +233,10 @@
         *   because Google crawling frequency is lower than that for 99% of the
         *   sites.
         * 
-        * @param mixed $pRatingExternalID
+        * @param int64 $pRatingExternalID
+        * @param smallint $pAccuracy
         */
-        public function GetRichSnippetData($pRatingExternalID)
+        public function GetRichSnippetData($pRatingExternalID, $pAccuracy = false)
         {
             $cached_file_path = dirname(__FILE__) . '/ratings.json';
             
@@ -268,19 +269,25 @@
                 {
                     if ($pRatingExternalID == $rating->external_id)
                     {
-                        $votes = $rating->approved_count;
-                        $avg_rate = $rating->avg_rate;
+                        $votes = (int)$rating->approved_count;
+                        $avg_rate = (float)$rating->avg_rate;
                         break;
                     }
                 }
             }
-            
+
+            if (is_numeric($pAccuracy))
+            {
+                $pAccuracy = (int)$pAccuracy;
+                $avg_rate = (float)sprintf("%.{$pAccuracy}f", $avg_rate);
+            }
+        
             return array('votes' => $votes, 'avg_rate' => $avg_rate);
         }
         
         public function EchoAggregateRating($pRatingExternalID, $pMinVotes = 1, $pMinAvgRate = 0)
         {
-            $snippet_data = $this->GetRichSnippetData($pRatingExternalID);
+            $snippet_data = $this->GetRichSnippetData($pRatingExternalID, 2);
             
             if ($pMinVotes > $snippet_data['votes'])
                 return;
