@@ -48,18 +48,14 @@
         {
             parent::__construct($pScope, $pID, $pPublic, $pSecret);
         }
-        
-        public function Api($pPath, $pMethod = 'GET', $pParams = array())
+
+        private function _Api($pPath, $pMethod = 'GET', $pParams = array())
         {
+            $pMethod = strtoupper($pMethod);
+
             try
             {
-                $pMethod = strtoupper($pMethod);
-                
-                $result = $this->MakeRequest(
-                    $this->CanonizePath($pPath),
-                    $pMethod,
-                    $pParams
-                );
+                $result = $this->MakeRequest($pPath, $pMethod, $pParams);
             }
             catch (\Exception $e)
             {
@@ -73,8 +69,23 @@
                     )
                 ));
             }
-            
+
             return json_decode($result);
+        }
+
+        /**
+         * @return bool True if successful connectivity to the API endpoint using ping.json endpoint.
+         */
+        public function Test()
+        {
+            $pong = $this->_Api('/v' . RW_API__VERSION . '/ping.json');
+
+            return (is_object($pong) && isset($pong->api) && 'pong' === $pong->api);
+        }
+
+        public function Api($pPath, $pMethod = 'GET', $pParams = array())
+        {
+            return $this->_Api($this->CanonizePath($pPath), $pMethod, $pParams);
         }
         
         public function SignRequest($pResource, &$opts)
@@ -92,7 +103,7 @@
             
             $opts[CURLOPT_HTTPHEADER][] = 'Date: ' . $date;
 
-            $string_to_sign = implode("\n", array(
+            $string_to_sign = implode($eol, array(
                 $opts[CURLOPT_CUSTOMREQUEST],
                 $content_md5,
                 'application/json',
@@ -105,16 +116,18 @@
         }
 
         /**
-        * Makes an HTTP request. This method can be overridden by subclasses if
-        * developers want to do fancier things or use something other than curl to
-        * make the request.
-        *
-        * @param string $url The URL to make the request to
-        * @param array $params The parameters to use for the POST body
-        * @param CurlHandler $ch Initialized curl handle
-        *
-        * @return string The response text
-        */
+         * Makes an HTTP request. This method can be overridden by subclasses if
+         * developers want to do fancier things or use something other than curl to
+         * make the request.
+         *
+         * @param $pCanonizedPath The URL to make the request to
+         * @param string $pMethod HTTP method
+         * @param array $params The parameters to use for the POST body
+         * @param null $ch Initialized curl handle
+         *
+         * @return mixed
+         * @throws Exceptions\Exception
+         */
         protected function MakeRequest($pCanonizedPath, $pMethod = 'GET', $params = array(), $ch = null)
         {
             if (!$ch)
@@ -142,6 +155,12 @@
             // disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
             // for 2 seconds if the server does not support this header.
             $opts[CURLOPT_HTTPHEADER][] = 'Expect:';
+
+            if ('https' === substr(strtolower($pCanonizedPath), 0, 5))
+            {
+                $opts[CURLOPT_SSL_VERIFYHOST] = false;
+                $opts[CURLOPT_SSL_VERIFYPEER] = false;
+            }
 
             curl_setopt_array($ch, $opts);
             $result = curl_exec($ch);
@@ -224,42 +243,44 @@
             $str = str_replace('=', '', $str);
             return $str;
         }
-        
+
         /**
-        * Get specified rating Rich-Snippets data.
-        * 
-        * Note: 
-        *   Rich-Snippets data is daily cached (24 hour cache) on local disk
-        *   because Google crawling frequency is lower than that for 99% of the
-        *   sites.
-        * 
-        * @param int64 $pRatingExternalID
-        * @param smallint $pAccuracy
-        */
+         * Get specified rating Rich-Snippets data.
+         *
+         * Note:
+         *   Rich-Snippets data is daily cached (24 hour cache) on local disk
+         *   because Google crawling frequency is lower than that for 99% of the
+         *   sites.
+         *
+         * @param int64 $pRatingExternalID
+         * @param int|bool $pAccuracy
+         *
+         * @return array
+         */
         public function GetRichSnippetData($pRatingExternalID, $pAccuracy = false)
         {
             $cached_file_path = dirname(__FILE__) . '/ratings.json';
-            
+
             // Daily cache.
             if (!file_exists($cached_file_path) || 24 * 60 * 60 < (time() - filemtime($cached_file_path)))
             {
                 // Get ratings rich-snippets data.
                 $ratings = $this->Api('/ratings/rich-snippets.json');
-                
+
                 if (false !== $ratings)
                     // Cache ratings data.
                     file_put_contents($cached_file_path, json_encode($ratings));
                 else if (file_exists($cached_file_path))
                     // If has local cached version - fall back from request failure.
                     $ratings = json_decode(file_get_contents($cached_file_path));
-                    
+
             }
             else
             {
                 // Read cached data from disk.
                 $ratings = json_decode(file_get_contents($cached_file_path));
             }
-            
+
             $votes = 0;
             $avg_rate = 0;
 
@@ -281,21 +302,25 @@
                 $pAccuracy = (int)$pAccuracy;
                 $avg_rate = (float)sprintf("%.{$pAccuracy}f", $avg_rate);
             }
-        
+
             return array('votes' => $votes, 'avg_rate' => $avg_rate);
         }
-        
+
+        /**
+         * @param int64 $pRatingExternalID
+         * @param int $pMinVotes
+         * @param int $pMinAvgRate
+         */
         public function EchoAggregateRating($pRatingExternalID, $pMinVotes = 1, $pMinAvgRate = 0)
         {
             $snippet_data = $this->GetRichSnippetData($pRatingExternalID, 2);
-            
+
             if ($pMinVotes > $snippet_data['votes'])
                 return;
             if ($pMinAvgRate > $snippet_data['avg_rate'])
                 return;
-            
-            echo
-'<!-- schema.org rating data -->
+
+            echo '<!-- schema.org rating data -->
 <div itemprop="aggregateRating" itemscope itemtype="http://schema.org/AggregateRating">
     <meta itemprop="worstRating" content="0" />
     <meta itemprop="bestRating" content="5" />
@@ -303,5 +328,4 @@
     <meta itemprop="ratingCount" content="' . $snippet_data['votes'] . '" />
 </div>';
         }
-    }    
-?>
+    }
