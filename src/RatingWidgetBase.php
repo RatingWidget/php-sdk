@@ -17,7 +17,11 @@
     namespace RatingWidget\Api\Sdk;
 
     define('RW_API__VERSION', '1');
-    define('RW_API__ADRESS', 'http://api.rating-widget.com');
+    /*
+     * cURL Not Working With HTTPS And Cloudflare (for now keep using http)
+     * http://www.webhostingtalk.com/showthread.php?t=1421536
+     */
+    define('RW_API__ADDRESS', 'http://api.rating-widget.com');
     define('RW_SDK__PATH', dirname(__FILE__));
     define('RW_SDK__EXCEPTIONS_PATH', RW_SDK__PATH . '/exceptions/');
     
@@ -95,6 +99,6 @@
         
         protected function GetUrl($pCanonizedPath)
         {
-            return RW_API__ADRESS . $pCanonizedPath;
+            return RW_API__ADDRESS . $pCanonizedPath;
         }
     }
