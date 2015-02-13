@@ -25,6 +25,8 @@
 
     class RatingWidget extends RatingWidgetBase
     {
+	    const VERSION = '1.0.3';
+
         /**
         * Default options for curl.
         */
@@ -73,7 +75,33 @@
             return json_decode($result);
         }
 
-        /**
+	    /**
+	     * Find clock diff between current server to API server.
+	     *
+	     * @since 1.0.3
+	     * @return int Clodk diff in seconds.
+	     */
+	    public function FindClockDiff()
+	    {
+		    $time = time();
+		    $pong = $this->_Api('/v' . RW_API__VERSION . '/ping.json');
+		    return ($time - strtotime($pong->timestamp));
+	    }
+
+	    private $_clock_diff = 0;
+
+	    /**
+	     * Set clock diff for all API calls.
+	     *
+	     * @since 1.0.3
+	     * @param $pSeconds
+	     */
+	    public function SetClockDiff($pSeconds)
+	    {
+		    $this->_clock_diff = $pSeconds;
+	    }
+
+	    /**
          * @return bool True if successful connectivity to the API endpoint using ping.json endpoint.
          */
         public function Test()
@@ -92,7 +120,7 @@
         {
             $eol = "\n";
             $content_md5 = '';
-            $now = time();
+	        $now = (time() - $this->_clock_diff);
             $date = date('r', $now);
             
             if (isset($opts[CURLOPT_POST]) && 0 < $opts[CURLOPT_POST])
