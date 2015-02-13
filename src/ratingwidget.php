@@ -97,7 +97,7 @@
             
             if (isset($opts[CURLOPT_POST]) && 0 < $opts[CURLOPT_POST])
             {
-                $content_md5 = self::Base64UrlEncode(md5($opts[CURLOPT_POSTFIELDS]));
+                $content_md5 = md5($opts[CURLOPT_POSTFIELDS]);
                 $opts[CURLOPT_HTTPHEADER][] = 'Content-MD5: ' . $content_md5;
             }
             
